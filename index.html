@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<html lang = "en">
+   
+<head>
+	<title>Simple Python Forum</title>
+	<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0,  minimum-scale=1.0"> 
+	<meta charset='utf-8' />
+	<style>
+	#wrapper {
+		position: absolute;
+		z-index:0;
+		top:0px; 
+		bottom:0px; 
+		right:0px; 
+		left:0px; 
+		overflow:hidden; 
+	}
+
+	#dimmer {
+		position: absolute;
+		z-index:3;
+		width:100%;
+		height:100%; 
+		opacity:0.5;
+		background-color:#000000;
+		display:none;
+}		
+	
+	#output {
+		position: absolute;
+		z-index:1;
+		top:30px; 
+		bottom:30px; 
+		right:300px; 
+		left:300px; 
+	}
+
+	#newPostBox {
+		position: absolute;
+		z-index:7;
+		top:200px; 
+		right:500px; 
+		left:500px;
+		background-color:#ffffff;
+		border: 1px solid;
+		display:none;
+		padding:20px;
+	}
+
+	#postCreator {
+		position:relative;
+		width:98%;
+		z-index:8; 
+		overflow:hidden;
+	}
+
+	#postText {
+		position:relative;
+		width:98%;
+		height:100px; 
+		z-index:8; 
+		resize:none;
+		overflow-y: auto;
+	}
+	
+	#newThreadBox {
+		position: absolute;
+		z-index:7;
+		top:200px; 
+		right:500px; 
+		left:500px;
+		background-color:#ffffff;
+		border: 1px solid;
+		display:none;
+		padding:20px;
+	}
+
+	#threadTitle {
+		position:relative;
+		width:98%;
+		z-index:8; 
+		overflow:hidden;
+	}
+
+	#threadCreator {
+		position:relative;
+		width:98%;
+		z-index:8; 
+		overflow:hidden;
+	}
+
+	#threadText {
+		position:relative;
+		width:98%;
+		height:100px; 
+		z-index:8; 
+		resize:none;
+		overflow-y: auto;
+	}
+
+	button {
+		float:right;
+	}
+
+	.cancelButton {
+		display:flex;
+		justify-content:center;
+		align-items:center;
+		position:absolute;
+		top:-10px;
+		right:-10px;
+		width:20px;
+		height:20px; 
+		z-index:9; 
+		overflow:hidden;
+		overflow:none;
+		background-color:#ffffff;
+		border: 1px solid;
+		border-radius:50%;
+		cursor:pointer;
+	}
+
+
+	</style>
+</head>
+
+<body>
+	<div id="wrapper">
+		<div id="dimmer"></div>
+		<div id="output"></div>
+		<div id="newPostBox">
+			<div class="cancelButton" onclick="cancel()">&#x2716</div>
+			<input  type="text" id="postCreator"  placeholder="Ditt Namn eller Alias" ><br>
+			<textarea           id="postText"     placeholder="Brödtext" ></textarea>
+			<button onclick='sendComment()'>Lägg Till Post</button>
+		</div>
+		<div id="newThreadBox">
+			<div class="cancelButton" onclick="cancel()">&#x2716</div>
+			<input  type="text" id="threadTitle"   placeholder="Namn på tråden" ><br>
+			<input  type="text" id="threadCreator" placeholder="Ditt Namn eller Alias" ><br>
+			<textarea           id="threadText"    placeholder="Brödtext" ></textarea><br>
+			<button onclick='addThread()'>Lägg Till Tråd</button>
+		</div>
+	</div>
+</body>
+
+<script>
+
+currentThread=0;
+
+	function getThreadList(){
+		document.getElementById('output').innerHTML="<b>Simple Python Forum</b><br><hr>";
+		var xhr = new XMLHttpRequest();
+		var url = 'http://nile16.nu:1201/list';
+		xhr.open("GET", url, true);
+		xhr.onreadystatechange = function(){
+			if(xhr.readyState == 4 && xhr.status == 200) {
+				threadList=eval(decodeURIComponent(xhr.responseText));
+				for (i=0;i<threadList.length;i++) {
+					document.getElementById('output').innerHTML+="<a href='#' onclick='getThread("+threadList[i]['created']+")' >"+threadList[i]['title']+"</a><br>";
+					}
+				document.getElementById('output').innerHTML+="<hr><button onclick='openThreadBox()'>Skapa Tråd</button><br>";
+				}
+			}
+		xhr.send(null);
+	}
+	
+	function getThread(created){
+		document.getElementById('output').innerHTML="<div class='cancelButton' onclick='getThreadList()'>&#x2716</div>";
+		var xhr = new XMLHttpRequest();
+		var url = 'http://nile16.nu:1201/'+created.toString();
+		xhr.open("GET", url, true);
+		xhr.onreadystatechange = function(){
+			if(xhr.readyState == 4 && xhr.status == 200) {
+				thread=eval("("+decodeURIComponent(xhr.response)+")"); // Eval requires wrapping in () Bug?
+				console.log(thread['posts']);
+				document.getElementById('output').innerHTML+="<b>"+thread['title']+"</b><br>";
+				document.getElementById('output').innerHTML+="<p>"+thread['text']+"</p><br>";
+				document.getElementById('output').innerHTML+="<i>Av: "+thread['user']+"</i><br>";
+				document.getElementById('output').innerHTML+="<hr>";
+				for (i=0;i<thread['posts'].length;i++) {
+					document.getElementById('output').innerHTML+="<p>"+thread['posts'][i]['text']+"<br>";
+					document.getElementById('output').innerHTML+="<i>Av: "+thread['posts'][i]['user']+"</i></p><hr>";
+					}
+				document.getElementById('output').innerHTML+="<button onclick='openCommentBox()'>Skriv</button><br>";
+				currentThread=created;
+				}
+			}
+		xhr.send(null);
+	}
+
+	function openCommentBox(){
+		document.getElementById('dimmer').style.display='block';
+		document.getElementById('newPostBox').style.display='block';
+	}
+
+	function openThreadBox(){
+		document.getElementById('dimmer').style.display='block';
+		document.getElementById('newThreadBox').style.display='block';
+	}
+
+	function addThread(){
+		var xhr = new XMLHttpRequest();
+		var url = 'http://nile16.nu:1201/addthread/';
+		var para  = "['"+encodeURIComponent(document.getElementById('threadTitle').value.replace(/(\r\n|\n|\r)/gm,""))
+			para += "','"+encodeURIComponent(document.getElementById('threadCreator').value.replace(/(\r\n|\n|\r)/gm,""))+"','"
+			para += encodeURIComponent(document.getElementById('threadText').value.replace(/(\r\n|\n|\r)/gm,"<br>"))+"']"
+		xhr.open("POST", url, true);
+		xhr.onreadystatechange = function(){
+			if(xhr.readyState == 4 && xhr.status == 200) {
+				}
+			}
+		xhr.send(para);
+		document.getElementById('newThreadBox').style.display='none';
+		document.getElementById('dimmer').style.display='none';
+		document.getElementById('threadTitle').value="";
+		document.getElementById('threadText').value="";
+		getThreadList();
+	}
+	
+	function sendComment(){
+		var xhr = new XMLHttpRequest();
+		var url = 'http://nile16.nu:1201/addpost/'
+		var para  = "['"+currentThread.toString();
+			para += "','"+encodeURIComponent(document.getElementById('postCreator').value.replace(/(\r\n|\n|\r)/gm,""))+"','"
+			para += encodeURIComponent(document.getElementById('postText').value.replace(/(\r\n|\n|\r)/gm,"<br>"))+"']"
+		xhr.open("POST", url, true);
+		xhr.onreadystatechange = function(){
+			if(xhr.readyState == 4 && xhr.status == 200) {
+				}
+			}
+		xhr.send(para);
+		document.getElementById('newPostBox').style.display='none';
+		document.getElementById('dimmer').style.display='none';
+		document.getElementById('postText').value="";
+		getThread(currentThread);
+	}
+
+	function cancel(){
+		document.getElementById('newThreadBox').style.display='none';
+		document.getElementById('newPostBox').style.display='none';
+		document.getElementById('dimmer').style.display='none';
+	}
+	
+	getThreadList();
+</script>
+</html>
