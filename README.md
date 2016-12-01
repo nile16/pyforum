@@ -1,2 +1,2 @@
 # pyforum
-Miniforum
+Ett python miniforum.
